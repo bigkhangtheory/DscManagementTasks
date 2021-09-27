@@ -24,10 +24,10 @@ configuration SwitchLcmMode
         TestScript = {
             $lcm = Get-DscLocalConfigurationManager
 
-            if( $lcm.RefreshMode -eq 'Pull' )
+            if ( $lcm.RefreshMode -eq 'Pull' )
             {
-                $scheduledTask = Get-ScheduledTask | Where-Object {$_.TaskName -like $using:TaskName}
-                if( $null -ne $scheduledTask )
+                $scheduledTask = Get-ScheduledTask | Where-Object { $_.TaskName -like $using:TaskName }
+                if ( $null -ne $scheduledTask )
                 {
                     Write-Host "Delete schedule task '$using:TaskName'."
                     Unregister-ScheduledTask -TaskName $taskName -Confirm:$false -ErrorAction SilentlyContinue
@@ -39,25 +39,26 @@ configuration SwitchLcmMode
             Write-Verbose "Current LCM mode is '$($lcm.RefreshMode)', expected is 'Pull'"
             return $false
         }
-        SetScript = {
+        SetScript  = {
             $cfgName = $using:ConfigurationName
             $targetDir = $using:TargetMetaMofDir
 
-            if( [string]::IsNullOrWhiteSpace($cfgName) )
+            if ( [string]::IsNullOrWhiteSpace($cfgName) )
             {
                 $cfgName = $env:ComputerName
             }
 
-            if( [string]::IsNullOrWhiteSpace($targetDir) )
+            if ( [string]::IsNullOrWhiteSpace($targetDir) )
             {
                 $targetDir = "$($env:TEMP)\DSC_Config"
             }
 
             $srcMetaMofPath = "$($using:SourceMetaMofDir)\$($cfgName).meta.mof"
 
-            if( -not (Test-Path $srcMetaMofPath) )
+            if ( -not (Test-Path $srcMetaMofPath) )
             {
-                throw "New MetaMOF file '$srcMetaMofPath' not found."
+                Write-Error "ERROR: New MetaMOF file '$srcMetaMofPath' not found."
+                return
             }
 
             Write-Verbose "Creating target folder '$targetDir'..."
@@ -66,8 +67,8 @@ configuration SwitchLcmMode
             Write-Verbose "Copy MetaMOF '$srcMetaMofPath' into target folder..."
             Copy-Item -Path $srcMetaMofPath -Destination $targetDir -Force -ErrorAction Stop
 
-            $scheduledTask = Get-ScheduledTask | Where-Object {$_.TaskName -like $using:TaskName}
-            if( $null -ne $scheduledTask )
+            $scheduledTask = Get-ScheduledTask | Where-Object { $_.TaskName -like $using:TaskName }
+            if ( $null -ne $scheduledTask )
             {
                 Write-Host "Delete existing schedule task '$using:TaskName'."
                 Unregister-ScheduledTask -TaskName $using:TaskName -Confirm:$false -ErrorAction SilentlyContinue
@@ -77,27 +78,20 @@ configuration SwitchLcmMode
 
             $scriptCode = @"
             Start-Transcript -Path "`$PSScriptRoot\`$(`$MyInvocation.MyCommand.Name).log" -Append
-
             try
             {
                 `$lcm = Get-DscLocalConfigurationManager -ErrorAction Stop
-
                 `$metaMofPath = `'$targetDir\$cfgName.meta.mof`'
-
                 if( -not (Test-Path `$metaMofPath) )
                 {
                     throw "ERROR: Missing LCM configuration file `'`$metaMofPath`'."
                 }
-
                 if( `$null -ne `$lcm -and `$lcm.RefreshMode -eq 'Push' )
                 {
                     Stop-DscConfiguration -Force -ErrorAction SilentlyContinue
-
                     Remove-DscConfigurationDocument -Stage Pending -Force
                     Remove-DscConfigurationDocument -Stage Current -Force
-
                     Set-DscLocalConfigurationManager -Path `'$targetDir`' -ComputerName $cfgName -Force -Verbose
-
                     Update-DscConfiguration -Wait -Verbose
                 }
             }
@@ -115,7 +109,7 @@ configuration SwitchLcmMode
             $scriptCode | Set-Content -Path $scriptFilePath -Encoding UTF8 -Force
 
             # skip recreation of existing scheduled task
-            if( $null -eq (Get-ScheduledTask $using:TaskName -ErrorAction SilentlyContinue) )
+            if ( $null -eq (Get-ScheduledTask $using:TaskName -ErrorAction SilentlyContinue) )
             {
                 $ta = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File $scriptFilePath"
                 # Start at System Startup and repeat Task every 5 minutes for 12 hours
@@ -127,6 +121,6 @@ configuration SwitchLcmMode
                 $global:DSCMachineStatus = 1
             }
         }
-        GetScript = { return @{result = 'N/A'}}
+        GetScript  = { return @{result = 'N/A' } }
     }        
 }

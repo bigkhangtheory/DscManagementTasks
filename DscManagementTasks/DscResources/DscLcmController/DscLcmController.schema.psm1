@@ -2,18 +2,14 @@ $dscLcmControllerScript = @'
 function Send-DscTaggingData {
     [CmdletBinding()]
     param()
-
     $pattern = 'http[s]?:\/\/(?<PullServer>([^\/:\.[:space:]]+(\.[^\/:\.[:space:]]+)*)|([0-9](\.[0-9]{3})))(:[0-9]+)?((\/[^?#[:space:]]+)(\?[^#[:space:]]+)?(\#.+)?)?'
     try {
         $lcm = Get-DscLocalConfigurationManager -ErrorAction Stop
         $pullServerUrl = $lcm.ConfigurationDownloadManagers.ServerURL
         $agentId = $lcm.AgentId
-
         Write-Host "PullServerUrl = '$pullServerUrl'"
         Write-Host "AgentId = '$agentId'"
-
         $found = $pullServerUrl -match $pattern
-
         if (-not $found) {
             Write-Error "Could not find pull server in Url '$pullServerUrl'" -ErrorAction Stop
         }
@@ -22,14 +18,12 @@ function Send-DscTaggingData {
         Write-Error "Cannot get pull server name from 'Get-DscLocalConfigurationManager' output, the error was $($_.Exception.Message)"
         return
     }
-
     $versionData = Invoke-Command -ComputerName $env:COMPUTERNAME -ConfigurationName DSC -ScriptBlock {
         Get-DscConfigurationVersion
     }
     if ($versionData.Layers.Count -gt 1) {
         $versionData.Layers = $versionData.Layers -join ', '
     }
-
     Write-Host
     Write-Host "Sending the following DSC version data to JEA endpoint on pull server '$($Matches.PullServer)'"
     $versionData | Out-String | Write-Host
@@ -38,7 +32,6 @@ function Send-DscTaggingData {
         Send-DscTaggingData -AgentId $args[0] -Data $args[1]
     } -ArgumentList $agentId, $versionData
 }
-
 function Set-LcmPostpone {
     $postponeInterval = 14
     if ($lastLcmPostpone.AddDays($postponeInterval) -gt (Get-Date)) {
@@ -50,7 +43,6 @@ function Set-LcmPostpone {
         Write-Host "Last LCM postpone was done at '$lastLcmPostpone'. Triggering LCM postone as the last time was more than $postponeInterval ago"
         Write-Host
     }
-
     $currentLcmSettings = Get-DscLocalConfigurationManager
     $maxConsistencyCheckInterval = if ($currentLcmSettings.ConfigurationModeFrequencyMins -eq 44640) {
         44639 #value must be changed in order to reset the LCM timer
@@ -90,7 +82,6 @@ function Set-LcmPostpone {
     
     Set-ItemProperty -Path $dscLcmController.PSPath -Name LastLcmPostpone -Value (Get-Date) -Type String -Force
 }
-
 function Test-InMaintenanceWindow {
     if ($maintenanceWindows) {
         $inMaintenanceWindow = foreach ($maintenanceWindow in $maintenanceWindows) {
@@ -106,7 +97,6 @@ function Test-InMaintenanceWindow {
                 Get-ItemPropertyValue -Path $maintenanceWindow.PSPath -Name On
             }
             catch { }
-
             if ($dayOfWeek) {
                 if ((Get-Date).DayOfWeek -ne $dayOfWeek) {
                     Write-Host "DayOfWeek is set to '$dayOfWeek'. Current day of week is '$((Get-Date).DayOfWeek)', maintenance window does not apply"
@@ -116,27 +106,21 @@ function Test-InMaintenanceWindow {
                     Write-Host "Maintenance Window is configured for week day '$dayOfWeek' which is the current day of week."
                 }
             }
-
             if ($on) {
-
                 if ($on -ne 'last') {
                     $on = [int][string]$on[0]
                 }
-
                 $daysInMonth = [datetime]::DaysInMonth($now.Year, $now.Month)
                 $daysInMonth = for ($i = 1; $i -le $daysInMonth; $i++) {
                     Get-Date -Date $now -Day $i
                 }
-
                 $daysInMonth = $daysInMonth | Where-Object { $_.DayOfWeek -eq $dayOfWeek }
-
                 $daysInMonth = if ($on -eq 'last') {
                     $daysInMonth | Select-Object -Last 1
                 }
                 else {
                     $daysInMonth | Select-Object -Index ($on - 1)
                 }
-
                 if ($daysInMonth.ToShortDateString() -ne $now.ToShortDateString()) {
                     Write-Host "Today is not the '$on' $dayOfWeek in the current month"
                     continue
@@ -145,11 +129,9 @@ function Test-InMaintenanceWindow {
                     Write-Host "The LCM is supposed to run on the '$on' $dayOfWeek which applies to today"
                 }
             }
-
             Write-Host "Maintenance window: $($startTime) - $($endTime)."
             if ($currentTime -gt $startTime -and $currentTime -lt $endTime) {
                 Write-Host "Current time '$currentTime' is in maintenance window '$($maintenanceWindow.PSChildName)'"
-
                 Write-Host "IN MAINTENANCE WINDOW: Setting 'inMaintenanceWindow' to 'true' as the current time is in a maintanence windows."
                 $true
                 break
@@ -164,7 +146,6 @@ function Test-InMaintenanceWindow {
         $false
     }
     Write-Host
-
     if (-not $inMaintenanceWindow -and $maintenanceWindowOverride) {
         Write-Host "OVERRIDE: 'inMaintenanceWindow' is 'false' but 'maintenanceWindowOverride' is enabled, setting 'inMaintenanceWindow' to 'true'"
         $true
@@ -177,7 +158,6 @@ function Test-InMaintenanceWindow {
         $inMaintenanceWindow
     }
 }
-
 function Set-LcmMode {
     param(
         [Parameter(Mandatory)]
@@ -200,13 +180,10 @@ function Set-LcmMode {
     $content | Out-File -FilePath $mofFile.FullName -Encoding unicode
     
     Set-DscLocalConfigurationManager -Path $metaMofFolder
-
     Write-Host "LCM put into '$Mode' mode"
 }
-
 function Test-StartDscAutoCorrect {
     if ($maintenanceWindowMode -eq 'AutoCorrect') {
-
         $nextAutoCorrect = $lastAutoCorrect + $autoCorrectInterval
         Write-Host ""
         Write-Host "The previous AutoCorrect was done on '$lastAutoCorrect', the next one will not be triggered before '$nextAutoCorrect'. AutoCorrectInterval is $autoCorrectInterval."
@@ -231,10 +208,8 @@ function Test-StartDscAutoCorrect {
     }
     
 }
-
 function Test-StartDscRefresh {
     if ($maintenanceWindowMode -eq 'AutoCorrect') {
-
         $nextRefresh = $lastRefresh + $refreshInterval
         Write-Host ""
         Write-Host "The previous Refresh was done on '$lastRefresh', the next one will not be triggered before '$nextRefresh'. RefreshInterval is $refreshInterval."
@@ -259,7 +234,6 @@ function Test-StartDscRefresh {
     }
     
 }
-
 function Start-AutoCorrect {
     Write-Host "ACTION: Invoking Cim Method 'PerformRequiredConfigurationChecks' with Flags '1' (Consistency Check)."
     try {
@@ -272,7 +246,6 @@ function Start-AutoCorrect {
         $script:autoCorrectErrors = $true
     }
 }
-
 function Start-Monitor {
     Write-Host "ACTION: Invoking Cim Method 'PerformRequiredConfigurationChecks' with Flags '1' (Consistency Check)."
     try {
@@ -285,7 +258,6 @@ function Start-Monitor {
         $script:monitorErrors = $true
     }
 }
-
 function Start-Refresh {
     Write-Host "ACTION: Invoking Cim Method 'PerformRequiredConfigurationChecks' with Flags'5' (Pull and Consistency Check)."
     try {
@@ -306,12 +278,10 @@ function Start-Refresh {
         $script:refreshErrors = $true
     }
 }
-
 function Test-StartDscMonitor {
     $nextMonitor1 = $lastMonitor + $monitorInterval
     $nextMonitor2 = $lastAutoCorrect + $monitorInterval
     $nextMonitor = [datetime][math]::Max($nextMonitor1.Ticks, $nextMonitor2.Ticks)
-
     Write-Host ''
     Write-Host "The previous Monitor was done on '$lastMonitor', the next one will not be triggered before '$nextMonitor'. MonitorInterval is $monitorInterval."
     if ($currentTime -gt $nextMonitor) {
@@ -324,7 +294,6 @@ function Test-StartDscMonitor {
     }
     $doMonitor
 }
-
 function Start-LcmRequiredConfigurationChecks {
     param(
         [OutputType([timespan])]
@@ -390,18 +359,14 @@ function Start-LcmRequiredConfigurationChecks {
     Write-Host "LCM runtime was '$runtime'"
     $runtime
 }
-
 $writeTranscripts = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name WriteTranscripts
 $path = Join-Path -Path ([System.Environment]::GetFolderPath('CommonApplicationData')) -ChildPath 'Dsc\LcmController'
-
 if ($writeTranscripts) {
     Start-Transcript -Path "$path\LcmController.log" -Append
 }
-
 #Disable DSC Timer
 $timer = Get-CimInstance -ClassName  msft_providers | Where-Object { $_.Provider -like 'dsctimer' }
 $timer | Invoke-CimMethod -MethodName UnLoad
-
 $now = Get-Date
 $currentConfigurationMode = (Get-DscLocalConfigurationManager).ConfigurationMode
 $lcmModeChanged = ''
@@ -419,7 +384,6 @@ $lcmRuntime = $null
 $sendDscTaggingData = $false
 $sendDscTaggingDataError = $false
 $dscLcmController = Get-Item -Path HKLM:\SOFTWARE\DscLcmController
-
 $maintenanceWindows = Get-ChildItem -Path HKLM:\SOFTWARE\DscLcmController\MaintenanceWindows
 [bool]$maintenanceWindowOverride = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name MaintenanceWindowOverride 
 [timespan]$autoCorrectInterval = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name AutoCorrectInterval
@@ -431,7 +395,6 @@ $maintenanceWindows = Get-ChildItem -Path HKLM:\SOFTWARE\DscLcmController\Mainte
 [timespan]$logHistoryTimeSpan = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name LogHistoryTimeSpan
 [bool]$sendDscTaggingData = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name SendDscTaggingData
 $maintenanceWindowMode = Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name MaintenanceWindowMode
-
 [datetime]$lastAutoCorrect = try {
     Get-ItemPropertyValue -Path HKLM:\SOFTWARE\DscLcmController -Name LastAutoCorrect
 }
@@ -456,10 +419,8 @@ catch {
 catch {
     Get-Date -Date 0
 }
-
 Write-Host '----------------------------------------------------------------------------'
 Set-LcmPostpone
-
 $inMaintenanceWindow = Test-InMaintenanceWindow
 Write-Host
 if ($inMaintenanceWindow) {
@@ -474,18 +435,15 @@ if ($inMaintenanceWindow) {
         $lcmModeChanged = 'ApplyAndMonitor'
     }
 }
-
 if ($inMaintenanceWindow) {
     $doAutoCorrect = Test-StartDscAutoCorrect
     $doRefresh = Test-StartDscRefresh
-
     if ($doRefresh) {
         Start-Refresh
     }
     else {
         Write-Host "NO ACTION: 'doRefresh' is false, not invoking Cim Method 'PerformRequiredConfigurationChecks' with Flags '5' (Pull and Consistency Check)."
     }
-
     if ($doAutoCorrect) {
         Start-AutoCorrect
     }
@@ -494,13 +452,11 @@ if ($inMaintenanceWindow) {
     }
     
 }
-
 Write-Host
 if ($lcmModeChanged) {
     Write-Host "Setting LCM back from '$lcmModeChanged' to '$currentConfigurationMode'."
     Set-LcmMode -Mode $currentConfigurationMode
 }
-
 Write-Host
 if (-not $doAutoCorrect) {
     $doMonitor = Test-StartDscMonitor
@@ -514,61 +470,45 @@ if (-not $doAutoCorrect) {
 else {
     Write-Host "In AutoCorrect mode, skipping Montior"
 }
-
 $logItem = [pscustomobject]@{
     CurrentTime                 = (Get-Date).ToString('M\/d\/yyyy h:m:s tt', [System.Globalization.CultureInfo]::InvariantCulture)
     InMaintenanceWindow         = [int]$inMaintenanceWindow
     DoAutoCorrect               = [int]$doAutoCorrect
     DoMonitor                   = [int]$doMonitor
     DoRefresh                   = [int]$doRefresh
-
     LastAutoCorrect             = $lastAutoCorrect.ToString('M\/d\/yyyy h:m:s tt', [System.Globalization.CultureInfo]::InvariantCulture)
     LastMonitor                 = $lastMonitor.ToString('M\/d\/yyyy h:m:s tt', [System.Globalization.CultureInfo]::InvariantCulture)
     AutoCorrectInterval         = $autoCorrectInterval
     AutoCorrectIntervalOverride = $autoCorrectIntervalOverride
     ConsistencyCheckErrors      = $autoCorrectErrors
-
     MonitorInterval             = $monitorInterval
     MonitorErrors               = $monitorErrors
-
     LastRefresh                 = $lastRefresh.ToString('M\/d\/yyyy h:m:s tt', [System.Globalization.CultureInfo]::InvariantCulture)
     RefreshInterval             = $refreshInterval
     RefreshIntervalOverride     = $refreshIntervalOverride
     RefreshErrors               = $refreshErrors
-
     MaxLcmRuntime               = $maxLcmRuntime
     LcmRuntime                  = $lcmRuntime
-
     SendDscTaggingDataError     = $sendDscTaggingDataError
     
 } | Export-Csv -Path "$path\LcmControllerSummary.csv" -Delimiter ',' -Append -Force
-
 if ($writeTranscripts) {
     Stop-Transcript
 }
-
 #------------------------ LcmController.log cleanup ----------------------------------
-
 $pattern = '(\*{22}\r\nWindows PowerShell transcript start\r\n)((.|\r\n)+?)(End time: \d{14}\r\n\*{22})'
 $date = (Get-Date) - $logHistoryTimeSpan
-
 $lcmControllerLogContent = Get-Content -Path "$path\LcmController.log" -Raw
 $regexMatches = [regex]::Matches($lcmControllerLogContent, $pattern)
-
 $logEntries = $regexMatches | Where-Object {
     [datetime]::ParseExact((($_.Value -split "\n")[-2] -split ' ')[2].Trim(), 'yyyyMMddHHmmss', $null) -gt $date
 }
-
 #$logEntries | Group-Object -Property { [datetime]::ParseExact((($_.Value -split "\n")[-2] -split ' ')[2].Trim(),'yyyyMMddHHmmss',$null).ToString('yy MM dd') }
-
 Write-Host "Log file contained $($regexMatches.Count) entries, after cleanup if contains $($logEntries.Count) entries."
 $logEntries.Value | Out-File -FilePath "$path\LcmController.log" -Force
-
 #------------------ LcmControllerSummary.csv cleanup ------------------------------
-
 $summaryContent = Import-Csv -Path "$path\LcmControllerSummary.csv" -Delimiter ','
 $filteredSummaryContent = $summaryContent | Where-Object { [datetime]$_.CurrentTime -gt $date }
-
 Write-Host "Summary file contained $($summaryContent.Count) entries, after cleanup if contains $($filteredSummaryContent.Count) entries."
 $filteredSummaryContent | Export-Csv -Path "$path\LcmControllerSummary.csv" -Delimiter ',' -Force
 '@
