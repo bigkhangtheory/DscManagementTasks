@@ -1,37 +1,61 @@
-function Stop-DscLocalConfigurationManager {
-    #usually the process consuming the most memory is the DSC LCM
-    $p = Get-Process -Name WmiPrvSE -IncludeUserName |
-    Where-Object UserName -eq 'NT AUTHORITY\SYSTEM' |
-    Sort-Object -Property WS -Descending |
-    Select-Object -First 1
-
-    Write-Host "The LCM is running un process with $($p.Id) consuming $([System.Math]::Round($p.WS / 1MB, 2))MB of memory (Working Set)."
-    $p | Stop-Process -Force
-    Write-Host 'The LCM process was killed'
+function Stop-DscLocalConfigurationManager
+{
+    [CmdletBinding()]
+    param ()
+    begin
+    {
+        #usually the process consuming the most memory is the DSC LCM
+        $p = Get-Process -Name WmiPrvSE -IncludeUserName |
+        Where-Object UserName -EQ 'NT AUTHORITY\SYSTEM' |
+        Sort-Object -Property WS -Descending |
+        Select-Object -First 1
+    }
+    process
+    { 
+        Write-Host "The LCM is running a process with $($p.Id) consuming $([System.Math]::Round($p.WS / 1MB, 2))MB of memory (Working Set)."
+    
+        try
+        {
+            $p | Stop-Process -Force
+        }
+        catch
+        {
+            throw "$($_.Exception.Message)"
+        }
+        Write-Host 'The LCM process was killed'
+    }
+    end {}
 }
 
-function Get-DscConfigurationVersion {
+function Get-DscConfigurationVersion
+{
     $key = Get-Item HKLM:\SOFTWARE\DscTagging
     $hash = @{ }
-    foreach ($property in $key.Property) {
+    
+    foreach ($property in $key.Property)
+    {
         $hash.Add($property, $key.GetValue($property))
     }
 
     New-Object -TypeName PSObject -Property $hash
 }
 
-function Get-DscLcmControllerSettings {
+function Get-DscLcmControllerSettings
+{
     $key = Get-Item HKLM:\SOFTWARE\DscLcmController
     $hash = @{ }
-    foreach ($property in $key.Property) {
+    foreach ($property in $key.Property)
+    {
         $hash.Add($property, $key.GetValue($property))
     }
 
     $maintenanceWindows = Get-ChildItem -Path HKLM:\SOFTWARE\DscLcmController\MaintenanceWindows
     $maintenanceWindowsHash = @{ }
-    foreach ($maintenanceWindow in $maintenanceWindows) {
+    foreach ($maintenanceWindow in $maintenanceWindows)
+    {
         $mwHash = @{ }
-        foreach ($property in $maintenanceWindow.Property) {
+        foreach ($property in $maintenanceWindow.Property)
+        {
             $mwHash.Add($property, $maintenanceWindow.GetValue($property))
         }
         $maintenanceWindowsHash.Add($maintenanceWindow.PSChildName, $mwHash)
@@ -42,17 +66,21 @@ function Get-DscLcmControllerSettings {
     New-Object -TypeName PSObject -Property $hash
 }
 
-function Test-DscConfiguration {
+function Test-DscConfiguration
+{
     PSDesiredStateConfiguration\Test-DscConfiguration -Detailed -Verbose
 }
-function Update-DscConfiguration {
+function Update-DscConfiguration
+{
     PSDesiredStateConfiguration\Update-DscConfiguration -Wait -Verbose
 }
 
-function Get-DscLocalConfigurationManager {
+function Get-DscLocalConfigurationManager
+{
     PSDesiredStateConfiguration\Get-DscLocalConfigurationManager
 }
-function Get-DscLcmControllerLog {
+function Get-DscLcmControllerLog
+{
     param (
         [Parameter()]
         [switch]$AutoCorrect,
@@ -68,55 +96,68 @@ function Get-DscLcmControllerLog {
     )
 
     Import-Csv -Path C:\ProgramData\Dsc\LcmController\LcmControllerSummary.csv | Where-Object {
-        if ($AutoCorrect) {
+        if ($AutoCorrect)
+        {
             [bool][int]$_.DoAutoCorrect -eq $AutoCorrect
         }
-        else {
+        else
+        {
             $true
         }
     } | Where-Object {
-        if ($Refresh) {
+        if ($Refresh)
+        {
             [bool][int]$_.DoRefresh -eq $Refresh
         }
-        else {
+        else
+        {
             $true
         }
     } | Where-Object {
-        if ($Monitor) {
+        if ($Monitor)
+        {
             [bool][int]$_.DoMonitor -eq $Monitor
         }
-        else {
+        else
+        {
             $true
         }
     } | Microsoft.PowerShell.Utility\Select-Object -Last $Last
 }
 
-function Start-DscConfiguration {
+function Start-DscConfiguration
+{
     PSDesiredStateConfiguration\Start-DscConfiguration -UseExisting -Wait -Verbose
 }
 
-function Get-DscOperationalEventLog {
-    Get-WinEvent -LogName "Microsoft-Windows-Dsc/Operational"
+function Get-DscOperationalEventLog
+{
+    Get-WinEvent -LogName 'Microsoft-Windows-Dsc/Operational'
 }
 
-function Get-DscTraceInformation {
+function Get-DscTraceInformation
+{
     param (
         [Parameter()]
         [int]$Last = 100
     )
 
-    if (-not (Get-Module -ListAvailable -Name xDscDiagnostics)) {
+    if (-not (Get-Module -ListAvailable -Name xDscDiagnostics))
+    {
         Write-Error "This function required the module 'xDscDiagnostics' to be present on the system"
         return
     }
 
-    $failedJobs = Get-xDscOperation -Newest $Last | Where-Object Result -eq 'Failure'
+    $failedJobs = Get-xDscOperation -Newest $Last | Where-Object Result -EQ 'Failure'
 
-    foreach ($failedJob in $failedJobs) {
-        if ($failedJob.JobID) {
+    foreach ($failedJob in $failedJobs)
+    {
+        if ($failedJob.JobID)
+        {
             Trace-xDscOperation -JobId $failedJob.JobID
         }
-        else {
+        else
+        {
             Trace-xDscOperation -SequenceID $failedJob.SequenceId
         }
     }
@@ -141,7 +182,8 @@ Configuration DscDiagnostic {
     'Stop-DscLocalConfigurationManager'
 
     $functionDefinitions = @()
-    foreach ($visibleFunction in $visibleFunctions) {
+    foreach ($visibleFunction in $visibleFunctions)
+    {
         $functionDefinitions += @{
             Name        = $visibleFunction
             ScriptBlock = (Get-Command -Name $visibleFunction).ScriptBlock

@@ -550,7 +550,8 @@ configuration DscLcmController {
     Import-DscResource -ModuleName xPSDesiredStateConfiguration
     Import-DscResource -ModuleName ComputerManagementDsc
 
-    xRegistry DscLcmController_MaintenanceWindowMode {
+    xRegistry DscLcmController_MaintenanceWindowMode
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'MaintenanceWindowMode'
         ValueData = $MaintenanceWindowMode
@@ -559,7 +560,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_MonitorInterval {
+    xRegistry DscLcmController_MonitorInterval
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'MonitorInterval'
         ValueData = $MonitorInterval       
@@ -568,7 +570,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_AutoCorrectInterval {
+    xRegistry DscLcmController_AutoCorrectInterval
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'AutoCorrectInterval'
         ValueData = $AutoCorrectInterval
@@ -577,7 +580,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_AutoCorrectIntervalOverride {
+    xRegistry DscLcmController_AutoCorrectIntervalOverride
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'AutoCorrectIntervalOverride'
         ValueData = [int]$AutoCorrectIntervalOverride
@@ -586,7 +590,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_RefreshInterval {
+    xRegistry DscLcmController_RefreshInterval
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'RefreshInterval'
         ValueData = $RefreshInterval
@@ -595,7 +600,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_RefreshIntervalOverride {
+    xRegistry DscLcmController_RefreshIntervalOverride
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'RefreshIntervalOverride'
         ValueData = [int]$RefreshIntervalOverride
@@ -604,7 +610,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_ControllerInterval {
+    xRegistry DscLcmController_ControllerInterval
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'ControllerInterval'
         ValueData = $ControllerInterval
@@ -613,7 +620,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_MaintenanceWindowOverride {
+    xRegistry DscLcmController_MaintenanceWindowOverride
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'MaintenanceWindowOverride'
         ValueData = [int]$MaintenanceWindowOverride
@@ -622,7 +630,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_WriteTranscripts {
+    xRegistry DscLcmController_WriteTranscripts
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'WriteTranscripts'
         ValueData = [int]$WriteTranscripts
@@ -631,7 +640,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_MaxLcmRuntime {
+    xRegistry DscLcmController_MaxLcmRuntime
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'MaxLcmRuntime'
         ValueData = $MaxLcmRuntime
@@ -640,7 +650,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    xRegistry DscLcmController_LogHistoryTimeSpan {
+    xRegistry DscLcmController_LogHistoryTimeSpan
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'LogHistoryTimeSpan'
         ValueData = $LogHistoryTimeSpan
@@ -649,7 +660,8 @@ configuration DscLcmController {
         Force     = $true
     }
     
-    xRegistry DscLcmController_SendDscTaggingData {
+    xRegistry DscLcmController_SendDscTaggingData
+    {
         Key       = 'HKEY_LOCAL_MACHINE\SOFTWARE\DscLcmController'
         ValueName = 'SendDscTaggingData'
         ValueData = [int]$SendDscTaggingData
@@ -658,7 +670,8 @@ configuration DscLcmController {
         Force     = $true
     }
 
-    File DscLcmControllerScript {
+    File DscLcmControllerScript
+    {
         Ensure          = 'Present'
         Type            = 'File'
         DestinationPath = 'C:\ProgramData\Dsc\LcmController\LcmController.ps1'
