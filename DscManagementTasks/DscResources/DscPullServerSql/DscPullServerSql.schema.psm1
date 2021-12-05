@@ -1,47 +1,52 @@
 ﻿configuration DscPullServerSql
 {
-    param (
+    param
+    (
         [Parameter()]
-        [string]$CertificateThumbPrint = 'AllowUnencryptedTraffic',
+        [System.String]
+        $CertificateThumbPrint = 'AllowUnencryptedTraffic',
 
         [Parameter()]
-        [uint16]
+        [System.Uint16]
         $Port = 8080,
 
         [Parameter(Mandatory)]
-        [string]$RegistrationKey,
-
-        [Parameter(Mandatory)]
-        [string]$SqlServer = 'localhost',
-
-        [Parameter(Mandatory)]
-        [string]$DatabaseName = 'DSC',
+        [System.String]
+        $RegistrationKey,
 
         [Parameter()]
-        [string]
+        [System.String]
+        $SqlServer = 'localhost',
+
+        [Parameter(Mandatory)]
+        [System.String]
+        $DatabaseName = 'DSC',
+
+        [Parameter()]
+        [System.String]
         $EndpointName = 'PSDSCPullServer',
 
         [Parameter()]
-        [string]
-        $PhysicalPath = "$env:SystemDrive\inetpub\PSDSCPullServer",
+        [System.String]
+        $PhysicalPath = 'C:\inetpub\PSDSCPullServer',
 
         [Parameter()]
-        [string]
-        $ModulePath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Modules",
+        [System.String]
+        $ModulePath = 'C:\Program Files\WindowsPowerShell\DscService\Modules',
 
         [Parameter()]
-        [string]
-        $ConfigurationPath = "$env:PROGRAMFILES\WindowsPowerShell\DscService\Configuration",
+        [System.String]
+        $ConfigurationPath = 'C:\Program Files\WindowsPowerShell\DscService\Configuration',
 
         [Parameter()]
-        [bool]
+        [System.Boolean]
         $UseSecurityBestPractices = $false,
 
         [Parameter()]
-        [bool]
+        [System.Boolean]
         $ConfigureFirewall = $false
     )
-       
+
     Import-DSCResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xPSDesiredStateConfiguration
     Import-DSCResource -ModuleName NetworkingDsc
@@ -96,7 +101,7 @@
         DependsOn                    = '[WindowsFeature]DSCServiceFeature', '[xWebAppPool]PSDSCPullServerPool'
     }
 
-    xWebConfigKeyValue CorrectDBProvider 
+    xWebConfigKeyValue CorrectDBProvider
     {
         WebsitePath   = "IIS:\sites\$EndpointName"
         ConfigSection = 'AppSettings'
@@ -118,12 +123,12 @@
 
             if ( -not (Test-Path -Path $webConfigPath) )
             {
-                Write-Verbose "Configuration file '$webConfigPath' not found."  
+                Write-Verbose "Configuration file '$webConfigPath' not found."
                 return $false
             }
 
-            Write-Verbose "Reading configuration file '$webConfigPath'."  
-            
+            Write-Verbose "Reading configuration file '$webConfigPath'."
+
             [xml]$webConfigXml = Get-Content -Path $webConfigPath
 
             # read bindings
@@ -131,7 +136,7 @@
 
             if ( $null -eq $bindingNode )
             {
-                Write-Verbose "Xml node '/configuration/system.serviceModel/bindings/webHttpBinding/binding' not found in file '$webConfigPath'."  
+                Write-Verbose "Xml node '/configuration/system.serviceModel/bindings/webHttpBinding/binding' not found in file '$webConfigPath'."
                 return $false
             }
 
@@ -140,10 +145,10 @@
                 $bindingNode.maxBufferSize -ne $using:bufferSize -or
                 $bindingNode.transferMode -ne 'Streamed' )
             {
-                Write-Verbose "Required attributes on node '/configuration/system.serviceModel/bindings/webHttpBinding/binding' not found or have not the expected values.`n$($bindingNode.Attributes | ForEach-Object { "$($_.Name)='$($_.Value)', " } | Out-String)"  
+                Write-Verbose "Required attributes on node '/configuration/system.serviceModel/bindings/webHttpBinding/binding' not found or have not the expected values.`n$($bindingNode.Attributes | ForEach-Object { "$($_.Name)='$($_.Value)', " } | Out-String)"
                 return $false
             }
-            
+
             return $true
         }
         SetScript  = {
@@ -151,43 +156,43 @@
 
             if ( -not (Test-Path -Path $webConfigPath) )
             {
-                Write-Error "Configuration file '$webConfigPath' not found."  
+                Write-Error "Configuration file '$webConfigPath' not found."
                 return
             }
 
-            Write-Verbose "Reading configuration file '$webConfigPath'."  
-            
+            Write-Verbose "Reading configuration file '$webConfigPath'."
+
             [xml]$webConfigXml = Get-Content -Path $webConfigPath
 
-            $serviceModelNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel' ) 
-            
-            $bindingsNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel/bindings' ) 
+            $serviceModelNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel' )
+
+            $bindingsNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel/bindings' )
             if ( $null -eq $bindingsNode )
             {
                 $bindingsNode = $webConfigXml.CreateElement( 'bindings' )
                 [void]$serviceModelNode.AppendChild( $bindingsNode )
             }
-            
+
             $webHttpBindingNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel/bindings/webHttpBinding' )
             if ( $null -eq $webHttpBindingNode )
             {
                 $webHttpBindingNode = $webConfigXml.CreateElement( 'webHttpBinding' )
                 [void]$bindingsNode.AppendChild( $webHttpBindingNode )
             }
-            
+
             $bindingNode = $webConfigXml.SelectSingleNode( '/configuration/system.serviceModel/bindings/webHttpBinding/binding' )
             if ( $null -eq $bindingNode )
             {
                 $bindingNode = $webConfigXml.CreateElement( 'binding' )
                 [void]$webHttpBindingNode.AppendChild( $bindingNode )
             }
-            
+
             $bindingNode.SetAttribute( 'maxBufferPoolSize', $using:bufferSize )
             $bindingNode.SetAttribute( 'maxReceivedMessageSize', $using:bufferSize )
             $bindingNode.SetAttribute( 'maxBufferSize', $using:bufferSize )
             $bindingNode.SetAttribute( 'transferMode', 'Streamed' )
 
-            Write-Verbose "Set attributes on node '/configuration/system.serviceModel/bindings/webHttpBinding/binding'.`n$($bindingNode.Attributes | ForEach-Object { "$($_.Name)='$($_.Value)', " } | Out-String)"  
+            Write-Verbose "Set attributes on node '/configuration/system.serviceModel/bindings/webHttpBinding/binding'.`n$($bindingNode.Attributes | ForEach-Object { "$($_.Name)='$($_.Value)', " } | Out-String)"
 
             $webConfigXml.Save( $webConfigPath )
 
@@ -205,13 +210,12 @@
             Ensure      = 'Present'
             Name        = "DSC_PullServer_$Port"
             DisplayName = "DSC PullServer $Port"
-            Group = 'DSC PullServer'
             Enabled     = $true
             Action      = 'Allow'
             Direction   = 'InBound'
             LocalPort   = $Port
             Protocol    = 'TCP'
             DependsOn   = '[xDscWebService]PSDSCPullServer'
-        }        
+        }
     }
 }

@@ -1,27 +1,33 @@
 ﻿configuration DscPullServer
 {
-    param (
-        [string]
+    param
+    (
+        [Parameter()]
+        [System.String]
         $CertificateThumbPrint = 'AllowUnencryptedTraffic',
 
-        [uint16]
+        [Parameter()]
+        [System.UInt16]
         $Port = 8080,
 
-        [string]
+        [Parameter()]
+        [System.String]
         $EndpointName = 'PSDSCPullServer',
 
-        [string]
-        $PhysicalPath = "$env:SystemDrive\inetpub\PSDSCPullServer",
+        [Parameter()]
+        [System.String]
+        $PhysicalPath = 'C:\inetpub\PSDSCPullServer',
 
-        [bool]
+        [Parameter()]
+        [System.Boolean]
         $UseSecurityBestPractices = $false
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
     Import-DSCResource -ModuleName xPSDesiredStateConfiguration
 
-    xDscWebService PSDSCPullServer 
-    { 
+    xDscWebService PSDSCPullServer
+    {
         Ensure                   = 'Present'
         EndpointName             = $EndpointName
         Port                     = $Port
